@@ -1,0 +1,30 @@
+[package]
+name = "hackwell"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'
+
+[dependencies]
+hudhook = { version = "0.6.5", default-features = false, features = ["dx12"] }
+static_assertions = "1.1.0"
+imgui = { version = "0.11.0", features = ["tables-api"] } # matches version used by hudhook
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+minhook = "0.5.0"
+
+[dependencies.windows]
+version = "0.54.0"# matches version used by hudhook
+features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemServices",
+]
