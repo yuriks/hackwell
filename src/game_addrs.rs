@@ -7,11 +7,11 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 const ASSET_INFO_TABLE_ADDR: usize = 0x20eb000;
 const ASSET_INFO_TABLE_END: usize = 0x20f2ec0;
 
-pub type GetResourceDataFn = extern "C" fn(u32) -> AssetInfo;
+pub type GetResourceDataFn = unsafe extern "C" fn(u32) -> AssetInfo;
 pub const CODE_GetResourceData_ADDR: usize = 0x00015d0;
 
 pub type PlatformDecryptResourceFn =
-    extern "C" fn(id: u32, key: *const [u8; 16]) -> *const AssetInfo;
+    unsafe extern "C" fn(id: u32, key: *const [u8; 16]) -> *const AssetInfo;
 pub const CODE_PlatformDecryptResource_ADDR: usize = 0x0001650;
 
 pub struct GameMemory {

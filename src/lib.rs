@@ -1,18 +1,19 @@
 mod game_addrs;
 mod game_types;
+mod hooking;
 
 use crate::game_addrs::{
     CODE_GetResourceData_ADDR, CODE_PlatformDecryptResource_ADDR, GameMemory, GetResourceDataFn,
     PlatformDecryptResourceFn,
 };
 use crate::game_types::{AssetInfo, ASSET_TYPE_BMF, ASSET_TYPE_DXBC, ASSET_TYPE_MASK, ASSET_TYPE_OGG, ASSET_TYPE_PNG, ASSET_TYPE_MISC, ASSET_FLAG_ENCRYPTED};
+use crate::hooking::Trampoline;
 use hudhook::{hooks::dx12::ImguiDx12Hooks, ImguiRenderLoop};
 use imgui::{Condition, TableColumnSetup, Ui};
 use minhook::MinHook;
 use std::path::Path;
-use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::{Mutex, OnceLock};
-use std::{ffi::c_void, fs, mem, ptr, slice, str, thread};
+use std::{ffi::c_void, fs, ptr, slice, str, thread};
 use tracing::{debug, debug_span, error, info, info_span};
 use tracing_subscriber::fmt::format::FmtSpan;
 use windows::Win32::Foundation::HINSTANCE;
@@ -97,21 +98,13 @@ impl ModState {
 
     fn install_hooks(&self) {
         unsafe {
-            TRAMPOLINE_GetResourceData.store(
-                MinHook::create_hook(
-                    self.game_memory.mut_ptr(CODE_GetResourceData_ADDR),
-                    GetResourceData_hook as *mut c_void,
-                )
-                .unwrap(),
-                Ordering::Release,
+            TRAMPOLINE_GetResourceData.create_hook(
+                self.game_memory.mut_ptr(CODE_GetResourceData_ADDR),
+                GetResourceData_hook,
             );
-            TRAMPOLINE_PlatformDecryptResource.store(
-                MinHook::create_hook(
-                    self.game_memory.mut_ptr(CODE_PlatformDecryptResource_ADDR),
-                    PlatformDecryptResource_hook as *mut c_void,
-                )
-                .unwrap(),
-                Ordering::Release,
+            TRAMPOLINE_PlatformDecryptResource.create_hook(
+                self.game_memory.mut_ptr(CODE_PlatformDecryptResource_ADDR),
+                PlatformDecryptResource_hook,
             );
             MinHook::enable_all_hooks().unwrap();
         }
@@ -139,22 +132,23 @@ impl ModState {
             asset_info.data = Box::into_raw(replacement_data.into_boxed_slice()) as *const u8;
             asset_info.flags &= ASSET_TYPE_MASK; // Clear any encryption flags
 
-            unsafe { asset_table.replace_asset_info(asset_id, asset_info); }
+            unsafe {
+                asset_table.replace_asset_info(asset_id, asset_info);
+            }
         }
 
         Ok(())
     }
 }
 
-static TRAMPOLINE_GetResourceData: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static TRAMPOLINE_GetResourceData: Trampoline<GetResourceDataFn> = Trampoline::new();
 pub unsafe extern "C" fn GetResourceData_hook(asset_id: u32) -> AssetInfo {
     info!(asset_id, "asset loaded");
-    mem::transmute::<_, GetResourceDataFn>(TRAMPOLINE_GetResourceData.load(Ordering::Acquire))(
-        asset_id,
-    )
+    TRAMPOLINE_GetResourceData.get()(asset_id)
 }
 
-static TRAMPOLINE_PlatformDecryptResource: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static TRAMPOLINE_PlatformDecryptResource: Trampoline<PlatformDecryptResourceFn> =
+    Trampoline::new();
 pub unsafe extern "C" fn PlatformDecryptResource_hook(
     asset_id: u32,
     key: *const [u8; 16],
@@ -162,9 +156,7 @@ pub unsafe extern "C" fn PlatformDecryptResource_hook(
     let key_contents: &[u8] = if key.is_null() { &[] } else { &*key };
 
     info!(asset_id, key_ptr = ?key, key = ?key_contents, "decrypting asset");
-    let result = mem::transmute::<_, PlatformDecryptResourceFn>(
-        crate::TRAMPOLINE_PlatformDecryptResource.load(Ordering::Acquire),
-    )(asset_id, key);
+    let result = TRAMPOLINE_PlatformDecryptResource.get()(asset_id, key);
 
     let instance = get_mod_instance().lock().unwrap();
     if let Err(err) = instance.dump_single_asset(asset_id) {
