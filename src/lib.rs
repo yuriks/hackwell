@@ -4,6 +4,7 @@
 mod game_addrs;
 mod game_types;
 mod hooking;
+mod proxy_xinput;
 
 use crate::game_addrs::{
     CODE_GetResourceData_ADDR, CODE_PlatformDecryptResource_ADDR, GameMemory, GetResourceDataFn,
@@ -237,7 +238,7 @@ fn get_mod_instance() -> &'static Mutex<ModState> {
 }
 
 #[no_mangle]
-pub unsafe extern "stdcall" fn DllMain(hmodule: HINSTANCE, reason: u32, _: *mut c_void) {
+pub unsafe extern "system" fn DllMain(hmodule: HINSTANCE, reason: u32, _: *mut c_void) {
     if reason == DLL_PROCESS_ATTACH {
         let _ = hudhook::alloc_console();
         hudhook::enable_console_colors();
