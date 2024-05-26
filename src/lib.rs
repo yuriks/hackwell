@@ -6,7 +6,10 @@ use crate::game_addrs::{
     CODE_GetResourceData_ADDR, CODE_PlatformDecryptResource_ADDR, GameMemory, GetResourceDataFn,
     PlatformDecryptResourceFn,
 };
-use crate::game_types::{AssetInfo, ASSET_TYPE_BMF, ASSET_TYPE_DXBC, ASSET_TYPE_MASK, ASSET_TYPE_OGG, ASSET_TYPE_PNG, ASSET_TYPE_MISC, ASSET_FLAG_ENCRYPTED};
+use crate::game_types::{
+    AssetInfo, ASSET_FLAG_ENCRYPTED, ASSET_TYPE_BMF, ASSET_TYPE_DXBC, ASSET_TYPE_MASK,
+    ASSET_TYPE_MISC, ASSET_TYPE_OGG, ASSET_TYPE_PNG,
+};
 use crate::hooking::Trampoline;
 use hudhook::{hooks::dx12::ImguiDx12Hooks, ImguiRenderLoop};
 use imgui::{Condition, TableColumnSetup, Ui};
@@ -14,7 +17,7 @@ use minhook::MinHook;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::{ffi::c_void, fs, ptr, slice, str, thread};
-use tracing::{debug, debug_span, error, info, info_span};
+use tracing::{debug_span, error, info, info_span};
 use tracing_subscriber::fmt::format::FmtSpan;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
@@ -118,13 +121,22 @@ impl ModState {
             let entry = entry?;
             let path = entry.path();
 
-            let Some(filename) = path.file_name().and_then(|p| p.to_str()) else { continue; };
-            let id_str = filename.rsplit_once('.').map(|(l, _)| l).unwrap_or(filename);
-            let Ok(asset_id) = id_str.parse::<u32>() else { continue; };
+            let Some(filename) = path.file_name().and_then(|p| p.to_str()) else {
+                continue;
+            };
+            let id_str = filename
+                .rsplit_once('.')
+                .map(|(l, _)| l)
+                .unwrap_or(filename);
+            let Ok(asset_id) = id_str.parse::<u32>() else {
+                continue;
+            };
 
             info!(?path, asset_id, "found asset replacement");
 
-            let Some(mut asset_info) = asset_table.get_asset_info(asset_id) else { continue; };
+            let Some(mut asset_info) = asset_table.get_asset_info(asset_id) else {
+                continue;
+            };
 
             let replacement_data = fs::read(path)?;
 

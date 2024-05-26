@@ -74,7 +74,10 @@ impl AssetInfoTable {
 
     pub unsafe fn replace_asset_info(&self, asset_id: u32, asset_info: AssetInfo) -> Option<()> {
         if asset_id < self.len {
-            unsafe { *self.table.add(asset_id as usize) = asset_info; Some(()) }
+            unsafe {
+                *self.table.add(asset_id as usize) = asset_info;
+                Some(())
+            }
         } else {
             None
         }
