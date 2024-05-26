@@ -176,6 +176,8 @@ impl ImguiRenderLoop for ModHud {
 
         ui.window("Hack Well")
             .size([320.0, 200.0], Condition::Once)
+            .collapsed(true, Condition::Appearing)
+            .position([0.0, 0.0], Condition::Appearing)
             .build(|| {
                 ui.text("Asset List:");
                 if let Some(_t) = ui.begin_table_header(
