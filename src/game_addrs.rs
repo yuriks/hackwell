@@ -16,21 +16,18 @@ pub const CODE_PlatformDecryptResource_ADDR: usize = 0x0001650;
 
 pub struct GameMemory {
     module: HMODULE,
-    module_base: *mut c_void,
 }
 
 impl GameMemory {
     pub unsafe fn from_process() -> Self {
         // TODO: Version check
         let module = unsafe { GetModuleHandleA(None) }.unwrap();
-        GameMemory {
-            module,
-            module_base: module.0 as *mut c_void,
-        }
+        GameMemory { module }
     }
 
     pub unsafe fn ptr<T>(&self, addr: usize) -> *const T {
-        self.module_base.wrapping_add(addr) as *const T
+        let module_base = self.module.0 as *mut c_void;
+        module_base.wrapping_add(addr) as *const T
     }
 
     pub unsafe fn mut_ptr<T>(&self, addr: usize) -> *mut T {

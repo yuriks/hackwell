@@ -1,3 +1,5 @@
+#![allow(dead_code)] // Don't warn for unused constants in this module
+
 use static_assertions::assert_eq_size;
 
 #[repr(C)]

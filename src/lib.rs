@@ -1,3 +1,6 @@
+#![allow(non_upper_case_globals)]
+#![allow(non_snake_case)]
+
 mod game_addrs;
 mod game_types;
 mod hooking;
@@ -24,7 +27,6 @@ use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 
 struct ModState {
     game_memory: GameMemory,
-    asset_replacements: Vec<()>,
 }
 
 fn extension_for_asset_type(flags: u8) -> &'static str {
@@ -42,7 +44,6 @@ impl ModState {
     fn new() -> Self {
         ModState {
             game_memory: unsafe { GameMemory::from_process() },
-            asset_replacements: Vec::new(),
         }
     }
 
