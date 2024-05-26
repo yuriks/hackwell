@@ -184,18 +184,12 @@ impl ImguiRenderLoop for ModHud {
                         TableColumnSetup::new("id"),
                         TableColumnSetup::new("type"),
                         TableColumnSetup::new("size"),
-                        //TableColumnSetup::new("unk18"),
-                        //TableColumnSetup::new("unk28"),
                         TableColumnSetup::new("magic"),
                     ],
                 ) {
                     for i in 0..asset_table.len() {
                         let Some(asset) = asset_table.get_asset_info(i) else {
                             continue;
-                        };
-                        match asset.flags & 0x3F {
-                            2 | 3 | 7 | 8 => continue,
-                            _ => {},
                         };
 
                         ui.table_next_column(); // id
@@ -204,17 +198,6 @@ impl ImguiRenderLoop for ModHud {
                         ui.text(format!("{:02X}", asset.flags));
                         ui.table_next_column(); // size
                         ui.text(format!("0x{:X}", asset.size));
-
-                        /*
-                        ui.table_next_column(); // unk18
-                        if asset.unk18 != 0 {
-                            ui.text(format!("0x{:X}", asset.unk18));
-                        }
-                        ui.table_next_column(); // unk28
-                        if asset.unk28 != 0 {
-                            ui.text(format!("0x{:X}", asset.unk28));
-                        }
-                        */
 
                         ui.table_next_column(); // magic
                         if asset.size >= 4 {
